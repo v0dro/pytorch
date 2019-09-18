@@ -4431,6 +4431,27 @@ Example::
 """)
 
 
+add_docstr(torch.result_type,
+           r"""
+result_type(tensor, other) -> dtype
+
+Returns the :class:`torch.dtype` that would result from performing an arithmetic
+operation on the provided input tensors. See :class:`torch.dtype` documentation
+for more information on the type promotion logic.
+
+Args:
+    tensor (Tensor): an input tensor
+    other (Tensor or Number): an input tensor or number
+
+Example::
+
+    >>> torch.result_type(torch.tensor([1, 2], dtype=torch.int), 1.0)
+    torch.float32
+    >>> torch.result_type(torch.tensor([1, 2], dtype=torch.uint8), torch.tensor(1))
+    torch.uint8
+""")
+
+
 add_docstr(torch.round,
            r"""
 round(input, out=None) -> Tensor
