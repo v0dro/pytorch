@@ -162,6 +162,7 @@ int connect(
   // yet, or is listening but has its listen backlog exhausted.
   bool anyRefused = false;
   bool anyReset = false;
+  const auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     try {
       SYSCHECK_ERR_RETURN_NEG1(
@@ -185,7 +186,16 @@ int connect(
       pfd.fd = socket;
       pfd.events = POLLOUT;
 
-      int numReady = ::poll(&pfd, 1, timeout.count());
+      int pollTimeout = timeout.count();
+      if (timeout != kNoTimeout) {
+        // calculate remaining time and use that as timeout for poll()
+        const auto elapsed = std::chrono::high_resolution_clock::now() - start;
+        const auto remaining =
+            std::chrono::duration_cast<std::chrono::milliseconds>(timeout) -
+            std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
+        pollTimeout = std::max(0, (int)remaining.count());
+      }
+      int numReady = ::poll(&pfd, 1, pollTimeout);
       if (numReady < 0) {
         throw std::system_error(errno, std::system_category());
       } else if (numReady == 0) {
@@ -230,6 +240,16 @@ int connect(
       if (!nextAddr) {
         if (!wait || (!anyRefused && !anyReset)) {
           throw;
+        }
+
+        // if a timeout is specified, check time elapsed to see if we need to
+        // timeout. A timeout is specified if timeout != kNoTimeout.
+        if (timeout != kNoTimeout) {
+          const auto elapsed =
+              std::chrono::high_resolution_clock::now() - start;
+          if (elapsed > timeout) {
+            throw std::runtime_error("connect() timed out");
+          }
         }
         std::this_thread::sleep_for(std::chrono::seconds(1));
         anyRefused = false;
