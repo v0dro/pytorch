@@ -1096,11 +1096,7 @@ class TestQuantizedConv(unittest.TestCase):
         # quantize reference results for comparision
         result_ref_q = torch.quantize_linear(result_ref, scale=Y_scale, zero_point=Y_zero_point, dtype=torch.quint8)
 
-        # reformat X_init and W_init in the required format by qconv operator
-        # NCHW -> NHWC
-        X_NHWC = X.permute([0, 2, 3, 1]).contiguous()
-
-        X_q = torch.quantize_linear(X_NHWC, scale=X_scale, zero_point=X_zero_point, dtype=torch.quint8)
+        X_q = torch.quantize_linear(X, scale=X_scale, zero_point=X_zero_point, dtype=torch.quint8)
         if use_channelwise:
             W_q = torch.quantize_linear_per_channel(W,
                                                     W_scales_tensor.to(dtype=torch.double),
@@ -1123,9 +1119,6 @@ class TestQuantizedConv(unittest.TestCase):
             Y_scale,
             Y_zero_point,
         )
-
-        # Back to NCHW format
-        Y_q = Y_q.permute([0, 3, 1, 2]).contiguous()
 
         # Make sure the results match
         # assert_array_almost_equal compares using the following formula:
@@ -1393,6 +1386,7 @@ class TestQNNPackOps(TestCase):
         d = (dilation, dilation)
         p = (padding, padding)
 
+        # TODO(supriyar): unify qnnpack op apis with generic ones and follow logical NCHW
         q_max_pool = torch.ops.quantized.qnnpack_maxpool2d
 
         a = scale * (X - zero_point).to(dtype=torch.float)

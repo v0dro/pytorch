@@ -11,9 +11,9 @@ namespace {
 
 SmallVector<int64_t, 4> convOutputShape(
     int N, // mini-batch
+    int K, // output channels
     int H, // input height
     int W, // input width
-    int K, // output channels
     const std::vector<int64_t>& kernel,
     const torch::List<int64_t>& stride,
     const torch::List<int64_t>& padding,
@@ -27,6 +27,7 @@ SmallVector<int64_t, 4> convOutputShape(
       (W + 2 * padding[1] - dilation[1] * (kernel[1] - 1) - 1) / stride[1] + 1);
   out_shape.push_back(H_out);
   out_shape.push_back(W_out);
+  // TODO: reorder it to NCHW order once the memory format regression is fixed
   out_shape.push_back(K);
 
   return out_shape;
@@ -74,6 +75,15 @@ class QConv2dInt8 final : public c10::OperatorKernel {
       int64_t groups,
       double output_scale,
       int64_t output_zero_point) {
+    // Quantized kernels are all written with NHWC (channels last) layout in
+    // mind. Ideally, we'd be compatible with conv2d behavior and preserve the
+    // inputs layout as is (doing necessary upconversions).
+    //
+    // However, to be more robust, for now we just force output layout to always
+    // be NHWC (channels last), thus opportunistically improving perf.
+    //
+    // This might change when full memory format support lands
+    // See https://github.com/pytorch/pytorch/issues/23403
     TORCH_CHECK(
         fbgemm::fbgemmSupportedCPU(), "Your CPU does not support FBGEMM.");
     TORCH_CHECK(
@@ -82,13 +92,16 @@ class QConv2dInt8 final : public c10::OperatorKernel {
     TORCH_CHECK(stride.size() == 2, "2D convolution only");
     TORCH_CHECK(padding.size() == 2, "2D convolution only");
     TORCH_CHECK(dilation.size() == 2, "2D convolution only");
-    // inputs are in NHWC format
     int N = act.size(0);
-    int H = act.size(1);
-    int W = act.size(2);
-    int C = act.size(3);
+    int C = act.size(1);
+    int H = act.size(2);
+    int W = act.size(3);
 
-    Tensor act_contig = act.contiguous();
+    // FBGEMM requires NHWC
+    // TODO: change it to contiguous(MemoryFormat::ChannelsLast) once a perf
+    // regression of it is fixed. Today it's equivalent because `act` sizes
+    // are not used below
+    Tensor act_contig = act.permute({0, 2, 3, 1}).contiguous();
     const uint8_t* act_ptr =
         reinterpret_cast<uint8_t*>(act_contig.data_ptr<c10::quint8>());
 
@@ -110,7 +123,7 @@ class QConv2dInt8 final : public c10::OperatorKernel {
     TORCH_CHECK(C == (packB->inputChannels()),
         "[QConv2D] Given groups=", groups, ", weight of size ",
         K, ", ",  kernel_h, ", ", kernel_w, ", ", packB->inputChannels(),
-        ", expected input (NHWC) ", N, ", ", H, ", ", W, ", ", C,
+        ", expected input (NCHW) ", N, ", ", C, ", ", H, ", ", W,
         " to have ", (packB->inputChannels() * groups),
         " channels, but got ", C, " channels instead");
 
@@ -167,13 +180,17 @@ class QConv2dInt8 final : public c10::OperatorKernel {
       TORCH_CHECK(false, "[QConv2D] Unknown quantization scheme");
     }
 
+    // TODO: change convOutputShape to return NCHW sizes once perf is fixed
     auto outShape =
-        convOutputShape(N, H, W, K, kernel, stride, padding, dilation);
+        convOutputShape(N, K, H, W, kernel, stride, padding, dilation);
     TORCH_CHECK(
         std::all_of(
             outShape.begin(), outShape.end(), [](int64_t i) { return i > 0; }),
         "[QConv2D] each dimension of output tensor should be greater than 0")
 
+    // Force output format to be NHWC
+    // TODO: consider preserving input format
+    // TODO: add MemoryFormat::ChannelsLast here once perf is fixed
     Tensor output = _empty_affine_quantized(
         outShape, device(kCPU).dtype(kQUInt8), output_scale, output_zero_point);
     auto buffer = at::zeros_like(output, output.options().dtype(at::kInt));
@@ -234,7 +251,8 @@ class QConv2dInt8 final : public c10::OperatorKernel {
           1 /* num_threads */);
     }
 
-    return output;
+    //TODO: remove permute once MemoryLayout is added above
+    return output.permute({0, 3, 1, 2});
   }
 #else // USE_FBGEMM
   Tensor operator()(
