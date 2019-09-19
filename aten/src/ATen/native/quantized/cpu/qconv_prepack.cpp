@@ -33,11 +33,10 @@ class QConvPackWeightInt8 final : public c10::OperatorKernel {
         "Specify top/left padding only. \
         bottom/right padding assumed to be equal to top/left");
     TORCH_CHECK(dilation.size() == 2, "2D convolution only");
-    // weights in KRS(C/G) format
     int output_channels = weight.size(0);
-    int kernel_h = weight.size(1);
-    int kernel_w = weight.size(2);
-    int input_channels_per_group = weight.size(3);
+    int input_channels_per_group = weight.size(1);
+    int kernel_h = weight.size(2);
+    int kernel_w = weight.size(3);
 
     // mini-batch doesn't have any impact on how we pack weights
     // so we pass it as 1
@@ -57,16 +56,23 @@ class QConvPackWeightInt8 final : public c10::OperatorKernel {
          static_cast<int>(padding[1])},
         {static_cast<int>(dilation[0]), static_cast<int>(dilation[1])});
 
-    auto weight_contig = weight.contiguous();
+    // FBGEMM expects weights to be in channels last
+    auto weight_contig = weight.contiguous(MemoryFormat::ChannelsLast);
     const auto qtype = weight.qscheme();
     std::vector<int32_t> zero_points(1, 0);
     if (qtype == kPerTensorAffine) {
       zero_points[0] = weight.q_zero_point();
     } else if (qtype == kPerChannelAffine) {
+      auto axis = weight.q_per_channel_axis();
+      TORCH_CHECK(
+          axis.size() == 1 && axis[0] == 0,
+          "Only per output channel quantization is supported for the weights");
       zero_points.resize(output_channels, 0);
       for (int i = 0; i < output_channels; ++i) {
         zero_points[i] = weight.q_per_channel_zero_points()[i].item<int32_t>();
       }
+    } else {
+      TORCH_CHECK(false, "Unsupported qscheme: ", toString(qtype));
     }
 
     const int8_t* weight_ptr_int8 =
