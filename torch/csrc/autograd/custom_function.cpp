@@ -1,6 +1,8 @@
 #include <torch/csrc/autograd/custom_function.h>
 #include <torch/csrc/autograd/functions/accumulate_grad.h>
 
+#include <iostream>
+
 namespace torch { namespace autograd {
 
 VariableInfo::VariableInfo(const Variable& var)
@@ -161,6 +163,7 @@ variable_list AutogradContext::get_saved_variables() const {
 
 void AutogradContext::mark_dirty(const variable_list &inputs) {
   dirty_inputs_.clear();
+  std::cout << "calling AutogradContext::mark_dirty()\n";
   dirty_inputs_.reserve(inputs.size());
   for(auto& var : inputs) {
     dirty_inputs_.insert(var.unsafeGetTensorImpl());
@@ -169,6 +172,7 @@ void AutogradContext::mark_dirty(const variable_list &inputs) {
 
 void AutogradContext::mark_non_differentiable(const variable_list &outputs) {
   non_differentiable_.clear();
+  std::cout << "calling AutogradContext::mark_non_differentiable()\n";
   non_differentiable_.reserve(outputs.size());
   for(auto& var : outputs) {
     non_differentiable_.insert(var.unsafeGetTensorImpl());
