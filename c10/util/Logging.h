@@ -228,8 +228,8 @@ BINARY_COMP_HELPER(LessEquals, <=)
 #define CAFFE_ENFORCE_THAT(condition, ...) \
   CAFFE_ENFORCE_THAT_IMPL((condition), #condition, __VA_ARGS__)
 
-#define CAFFE_ENFORCE_EQ(x, y, ...) \
-  CAFFE_ENFORCE_THAT_IMPL(Equals((x), (y)), #x " == " #y, __VA_ARGS__)
+#define CAFFE_ENFORCE_EQ(x, y, ...)
+//  CAFFE_ENFORCE_THAT_IMPL(Equals((x), (y)), #x " == " #y, __VA_ARGS__)
 #define CAFFE_ENFORCE_NE(x, y, ...) \
   CAFFE_ENFORCE_THAT_IMPL(NotEquals((x), (y)), #x " != " #y, __VA_ARGS__)
 #define CAFFE_ENFORCE_LE(x, y, ...) \
