@@ -464,6 +464,9 @@ int64_t TensorIterator::num_output_elements() const {
   return elem;
 }
 
+// Counts the number of dimensions in the output tensor that have stride 0.
+// Function assumes that tensors storing a reduction result have 0 stride
+// in some particular dimension.
 int TensorIterator::num_reduce_dims() const {
   int count = 0;
   for (int dim = 0; dim < ndim(); dim++) {

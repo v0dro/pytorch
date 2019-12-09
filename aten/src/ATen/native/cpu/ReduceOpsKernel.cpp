@@ -202,9 +202,20 @@ static void argmin_kernel_impl(TensorIterator &iter) {
 }
 
 static void cumsum_kernel_impl(TensorIterator &iter) {
+  int dim = 0; 
     AT_DISPATCH_ALL_TYPES(
       iter.dtype(), "cumsum", [&] {
         scalar_t cumsum = 0;
+        int dims_to_reduce = 1;
+        // get number of dimensions to reduce
+        for (int i = 0; i < iter.ndim(); ++i) {
+          if (i != dim) {
+            dims_to_reduce *= iter.shape_[i]
+          }
+        }
+
+        std::cout << "dims_to_reduce: " << dims_to_reduce << std::endl;
+          
         if (iter.numel() < internal::GRAIN_SIZE) {
           at::native::cpu_serial_kernel(iter,
                                         [&](scalar_t input) {
