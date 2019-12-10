@@ -220,9 +220,10 @@ static void cumsum_kernel_impl(TensorIterator &iter) {
 
         std::cout << "output shape :: " << iter.output().sizes() << std::endl;
         std::cout << "reduce_dims: " << reduce_dims << std::endl;
+        int non_reduce_dim = dim +1;
 
         auto non_reduced_shape = iter.output().sizes().slice(reduce_dims,
-                                                             iter.output().sizes() - reduce_dims);
+                                                             iter.output().sizes().size() - reduce_dims);
         int64_t non_reduced_numel = 1;
         for (int i = 0; i < non_reduced_shape.size(); ++i) {
           non_reduced_numel *= non_reduced_shape[i];
@@ -237,7 +238,31 @@ static void cumsum_kernel_impl(TensorIterator &iter) {
           std::cout << "while dims: " << dims.values << std::endl;
           dims.increment({1,1});
         }
-          
+
+        std::cout << "------- new stuff ----\n";
+        std::vector<int64_t> d = iter.output().sizes().vec();
+        d[dim] = 0;
+        non_reduced_shape = IntArrayRef(d);
+        // std::cout << ""
+        // non_reduced_shape = IntArrayRef(iter.output().sizes());
+        std::cout << "nonreduced shape: " << non_reduced_shape << std::endl;
+        // non_reduced_shape[dim] = 0;
+
+        non_reduced_numel = 1;
+        for (int i = 0 ; i < non_reduced_shape.size(); i++) {
+          if (i != dim)
+            non_reduced_numel *= non_reduced_shape[i];
+        }
+
+        DimCounter newdims {non_reduced_shape, {0, non_reduced_numel}};
+        std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
+
+        std::cout << "newdims: " << newdims.values << std::endl;
+        while(!newdims.is_done()) {
+          std::cout << "newdims: " << newdims.values << std::endl;
+          newdims.increment({1,1});
+        }
+        
         if (iter.numel() < internal::GRAIN_SIZE) {
           at::native::cpu_serial_kernel(iter,
                                         [&](scalar_t input) {

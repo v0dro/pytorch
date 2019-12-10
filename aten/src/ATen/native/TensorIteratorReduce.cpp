@@ -137,6 +137,7 @@ void TensorIterator::foreach_reduced_elt(loop_subiter_t loop, bool parallelize) 
     for (int i = 0; i < non_reduced_shape.size(); ++i) {
       non_reduced_numel *= non_reduced_shape[i];
     }
+    std::cout << "shape: " << shape << std::endl;
     std::cout << "reduce_dims: " << reduce_dims << std::endl;
      std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
      std::cout << "non reduced shape: " << non_reduced_shape << std::endl;
