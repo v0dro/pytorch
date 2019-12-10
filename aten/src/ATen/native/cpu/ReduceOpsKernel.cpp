@@ -206,16 +206,37 @@ static void cumsum_kernel_impl(TensorIterator &iter) {
     AT_DISPATCH_ALL_TYPES(
       iter.dtype(), "cumsum", [&] {
         scalar_t cumsum = 0;
-        int dims_to_reduce = 1;
-        // get number of dimensions to reduce
+        int reduce_dims = 1;
+        // get number of dimensions to reduce. we do it this way in this
+        // case since we don't have a 0 stride dimension which can be taken
+        // as the 'reduction' dimension. Therefore we multiply the dimensions
+        // except the dimension over which the user wants the cumsum in order
+        // to find the number of iterations to perform.
         for (int i = 0; i < iter.ndim(); ++i) {
           if (i != dim) {
-            dims_to_reduce *= iter.shape()[i];
+            reduce_dims *= iter.shape()[i];
           }
         }
 
-        std::cout << "shape :: " << iter.output().sizes() << std::endl;
-        std::cout << "dims_to_reduce: " << dims_to_reduce << std::endl;
+        std::cout << "output shape :: " << iter.output().sizes() << std::endl;
+        std::cout << "reduce_dims: " << reduce_dims << std::endl;
+
+        auto non_reduced_shape = iter.output().sizes().slice(reduce_dims,
+                                                             iter.output().sizes() - reduce_dims);
+        int64_t non_reduced_numel = 1;
+        for (int i = 0; i < non_reduced_shape.size(); ++i) {
+          non_reduced_numel *= non_reduced_shape[i];
+        }
+
+        std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
+        std::cout << "non reduced shape: " << non_reduced_shape << std::endl;
+
+        DimCounter dims {non_reduced_shape, {0, non_reduced_numel}};
+
+        while (!dims.is_done()) {
+          std::cout << "while dims: " << dims.values << std::endl;
+          dims.increment({1,1});
+        }
           
         if (iter.numel() < internal::GRAIN_SIZE) {
           at::native::cpu_serial_kernel(iter,
