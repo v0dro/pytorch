@@ -210,10 +210,11 @@ static void cumsum_kernel_impl(TensorIterator &iter) {
         // get number of dimensions to reduce
         for (int i = 0; i < iter.ndim(); ++i) {
           if (i != dim) {
-            dims_to_reduce *= iter.shape_[i]
+            dims_to_reduce *= iter.shape()[i];
           }
         }
 
+        std::cout << "shape :: " << iter.output().sizes() << std::endl;
         std::cout << "dims_to_reduce: " << dims_to_reduce << std::endl;
           
         if (iter.numel() < internal::GRAIN_SIZE) {
