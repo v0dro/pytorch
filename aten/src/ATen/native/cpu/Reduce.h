@@ -211,6 +211,7 @@ void binary_kernel_reduce(TensorIterator& iter, ops_t ops, init_t init) {
         int64_t stride = strides[ntensors - 1];
         std::cout << "stride: " << stride << std::endl;
         for (int64_t i = 0; i < size; ++i) {
+          std::cout << "--> in: " << *(data_t*)in << std::endl;
           acc = ops.reduce(acc, *(data_t*)in, begin + i);
           in += stride;
         }
