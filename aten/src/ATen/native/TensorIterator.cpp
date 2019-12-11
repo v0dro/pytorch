@@ -525,6 +525,9 @@ void TensorIterator::serial_for_each(loop_t loop, Range range) const {
   serial_for_each(LOOP_WRAPPER(ntensors(), loop), range);
 }
 
+// Loop over a function of type loop2d_t which will make the data, strides and
+// size of the tensors within this TensorIterator. The function args for loop
+// can be provided in the order (char** data, const int64_t* strides, int64_t size).
 void TensorIterator::serial_for_each(loop2d_t loop, Range range) const {
   if (range.size() == 0) {
     return;
@@ -536,6 +539,7 @@ void TensorIterator::serial_for_each(loop2d_t loop, Range range) const {
 
   auto base_ptrs = get_base_ptrs();
   if (ndim() <= 1) {
+    std::cout << "serial_for_each ndim() <= 1\n"; 
     auto ptrs = get_data_ptrs(base_ptrs, { range.begin });
     loop(ptrs.data(), strides.data(), range.size(), 1);
   } else {

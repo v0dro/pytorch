@@ -219,6 +219,7 @@ static void cumsum_kernel_impl(TensorIterator &iter) {
         }
 
         std::cout << "output shape :: " << iter.output().sizes() << std::endl;
+        std::cout << "iter.output strides :: " << iter.output().strides() << std::endl;
         std::cout << "reduce_dims: " << reduce_dims << std::endl;
         int non_reduce_dim = dim +1;
 

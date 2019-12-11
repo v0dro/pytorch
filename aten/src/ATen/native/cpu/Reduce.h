@@ -204,6 +204,7 @@ void binary_kernel_reduce(TensorIterator& iter, ops_t ops, init_t init) {
   const int num_outputs = iter.noutputs();
   iter.foreach_reduced_elt([&ops, &init, num_outputs](TensorIterator &sub_iter) {
     auto reduction_body = [&ops, &sub_iter, num_outputs](acc_t acc, int64_t begin, int64_t end) -> acc_t {
+      std::cout << "calling reduction_body\n";
       int ntensors = sub_iter.ntensors();
       sub_iter.serial_for_each([&acc, &ops, num_outputs, ntensors, begin](char** data, const int64_t* strides, int64_t size) {
         AT_ASSERT(ntensors - num_outputs == 1);
