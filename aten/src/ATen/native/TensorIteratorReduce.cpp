@@ -139,12 +139,14 @@ void TensorIterator::foreach_reduced_elt(loop_subiter_t loop, bool parallelize) 
     }
     std::cout << "shape: " << shape << std::endl;
     std::cout << "reduce_dims: " << reduce_dims << std::endl;
-     std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
-     std::cout << "non reduced shape: " << non_reduced_shape << std::endl;
+    std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
+    std::cout << "non reduced shape: " << non_reduced_shape << std::endl;
+    
     DimCounter dims {non_reduced_shape, {0, non_reduced_numel}};
     while (!dims.is_done()) {
       TensorIterator reduced = *this;
       reduced.select_all_keeping_dim(reduce_dims, dims.values);
+      std::cout << "dims counter: " << dims.values << std::endl;
       loop(reduced);
       dims.increment({1, 1});
     }

@@ -617,6 +617,8 @@ void TensorIterator::narrow(int dim, int64_t start, int64_t size) {
   }
 }
 
+// Set the shape of dimensions after start_dim to 1 for all tensors in this iterator.
+// Also sets the Tensor#data pointer to point to the first element in that dimension.
 void TensorIterator::select_all_keeping_dim(int start_dim, IntArrayRef indices) {
   AT_ASSERT(start_dim <= ndim());
   for (int i = start_dim; i < ndim(); ++i) {
