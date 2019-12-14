@@ -206,20 +206,20 @@ static void cumsum_kernel_impl(TensorIterator &iter) {
   std::cout << "------- new stuff -------\n";
   std::vector<int64_t> d = iter.output().sizes().vec();
   d[dim] = 0;
-  non_reduced_shape = IntArrayRef(d);
+  auto non_reduced_shape = IntArrayRef(d);
   // std::cout << ""
   // non_reduced_shape = IntArrayRef(iter.output().sizes());
   std::cout << "nonreduced shape: " << non_reduced_shape << std::endl;
   // non_reduced_shape[dim] = 0;
 
-  non_reduced_numel = 1;
+  auto non_reduced_numel = 1;
   for (int i = 0 ; i < non_reduced_shape.size(); i++) {
     if (i != dim)
       non_reduced_numel *= non_reduced_shape[i];
   }
 
   std::cout << "iterator get_strides: " << iter.get_strides() << std::endl;
-  std::cout << "iterator ndims: " << iter.ndims() << std::endl;
+  std::cout << "iterator ndims: " << iter.ndim() << std::endl;
   std::cout << "------- end of new stuff -------\n";
   // DimCounter newdims {non_reduced_shape, {0, non_reduced_numel}};
   // std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
