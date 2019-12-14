@@ -202,80 +202,91 @@ static void argmin_kernel_impl(TensorIterator &iter) {
 }
 
 static void cumsum_kernel_impl(TensorIterator &iter) {
-  int dim = 0; 
-    AT_DISPATCH_ALL_TYPES(
-      iter.dtype(), "cumsum", [&] {
-        scalar_t cumsum = 0;
-        int reduce_dims = 1;
-        // get number of dimensions to reduce. we do it this way in this
-        // case since we don't have a 0 stride dimension which can be taken
-        // as the 'reduction' dimension. Therefore we multiply the dimensions
-        // except the dimension over which the user wants the cumsum in order
-        // to find the number of iterations to perform.
-        for (int i = 0; i < iter.ndim(); ++i) {
-          if (i != dim) {
-            reduce_dims *= iter.shape()[i];
-          }
-        }
+  int dim = 0;
+  std::cout << "------- new stuff -------\n";
+  std::vector<int64_t> d = iter.output().sizes().vec();
+  d[dim] = 0;
+  non_reduced_shape = IntArrayRef(d);
+  // std::cout << ""
+  // non_reduced_shape = IntArrayRef(iter.output().sizes());
+  std::cout << "nonreduced shape: " << non_reduced_shape << std::endl;
+  // non_reduced_shape[dim] = 0;
 
-        std::cout << "output shape :: " << iter.output().sizes() << std::endl;
-        std::cout << "iter.output strides :: " << iter.output().strides() << std::endl;
-        std::cout << "reduce_dims: " << reduce_dims << std::endl;
-        int non_reduce_dim = dim +1;
+  non_reduced_numel = 1;
+  for (int i = 0 ; i < non_reduced_shape.size(); i++) {
+    if (i != dim)
+      non_reduced_numel *= non_reduced_shape[i];
+  }
 
-        auto non_reduced_shape = iter.output().sizes().slice(reduce_dims,
-                                                             iter.output().sizes().size() - reduce_dims);
-        int64_t non_reduced_numel = 1;
-        for (int i = 0; i < non_reduced_shape.size(); ++i) {
-          non_reduced_numel *= non_reduced_shape[i];
-        }
+  std::cout << "iterator get_strides: " << iter.get_strides() << std::endl;
+  std::cout << "iterator ndims: " << iter.ndims() << std::endl;
+  std::cout << "------- end of new stuff -------\n";
+  // DimCounter newdims {non_reduced_shape, {0, non_reduced_numel}};
+  // std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
 
-        std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
-        std::cout << "non reduced shape: " << non_reduced_shape << std::endl;
+  // a mechanish for looping over shapes that with size > 2 does not yet
+  // exist so we use an ad-hoc way to do this for now.
+  
 
-        DimCounter dims {non_reduced_shape, {0, non_reduced_numel}};
+  // AT_DISPATCH_ALL_TYPES(
+  //     iter.dtype(), "cumsum", [&] {
+  //                               std::cout << "---- old stuff start ----\n";
+  //       scalar_t cumsum = 0;
+  //       int reduce_dims = 1;
+  //       // get number of dimensions to reduce. we do it this way in this
+  //       // case since we don't have a 0 stride dimension which can be taken
+  //       // as the 'reduction' dimension. Therefore we multiply the dimensions
+  //       // except the dimension over which the user wants the cumsum in order
+  //       // to find the number of iterations to perform.
+  //       for (int i = 0; i < iter.ndim(); ++i) {
+  //         if (i != dim) {
+  //           reduce_dims *= iter.shape()[i];
+  //         }
+  //       }
 
-        while (!dims.is_done()) {
-          std::cout << "while dims: " << dims.values << std::endl;
-          dims.increment({1,1});
-        }
+  //       std::cout << "output shape :: " << iter.output().sizes() << std::endl;
+  //       std::cout << "iter.output strides :: " << iter.output().strides() << std::endl;
+  //       std::cout << "reduce_dims: " << reduce_dims << std::endl;
+  //       int non_reduce_dim = dim +1;
 
-        std::cout << "------- new stuff ----\n";
-        std::vector<int64_t> d = iter.output().sizes().vec();
-        d[dim] = 0;
-        non_reduced_shape = IntArrayRef(d);
-        // std::cout << ""
-        // non_reduced_shape = IntArrayRef(iter.output().sizes());
-        std::cout << "nonreduced shape: " << non_reduced_shape << std::endl;
-        // non_reduced_shape[dim] = 0;
+  //       auto non_reduced_shape = iter.output().sizes().slice(reduce_dims,
+  //                                                            iter.output().sizes().size() - reduce_dims);
+  //       int64_t non_reduced_numel = 1;
+  //       for (int i = 0; i < non_reduced_shape.size(); ++i) {
+  //         non_reduced_numel *= non_reduced_shape[i];
+  //       }
 
-        non_reduced_numel = 1;
-        for (int i = 0 ; i < non_reduced_shape.size(); i++) {
-          if (i != dim)
-            non_reduced_numel *= non_reduced_shape[i];
-        }
+  //       std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
+  //       std::cout << "non reduced shape: " << non_reduced_shape << std::endl;
 
-        DimCounter newdims {non_reduced_shape, {0, non_reduced_numel}};
-        std::cout << "non reduced numel: " << non_reduced_numel << std::endl;
+  //       DimCounter dims {non_reduced_shape, {0, non_reduced_numel}};
 
-        std::cout << "newdims: " << newdims.values << std::endl;
-        while(!newdims.is_done()) {
-          std::cout << "newdims: " << newdims.values << std::endl;
-          newdims.increment({1,1});
-        }
+  //       while (!dims.is_done()) {
+  //         std::cout << "while dims: " << dims.values << std::endl;
+  //         dims.increment({1,1});
+  //       }
+
+
         
-        if (iter.numel() < internal::GRAIN_SIZE) {
-          at::native::cpu_serial_kernel(iter,
-                                        [&](scalar_t input) {
-                                          cumsum += input;
-                                          return cumsum;
-                                        });
-        }
-        else {
-          // parallel implementation.
-          std::cout << "no parallel impl yet.";
-        }
-      });
+
+  //       // std::cout << "newdims: " << newdims.values << std::endl;
+  //       // while(!newdims.is_done()) {
+  //       //   std::cout << "newdims: " << newdims.values << std::endl;
+  //       //   newdims.increment({1,1});
+  //       // }
+        
+  //       if (iter.numel() < internal::GRAIN_SIZE) {
+  //         at::native::cpu_serial_kernel(iter,
+  //                                       [&](scalar_t input) {
+  //                                         cumsum += input;
+  //                                         return cumsum;
+  //                                       });
+  //       }
+  //       else {
+  //         // parallel implementation.
+  //         std::cout << "no parallel impl yet.";
+  //       }
+  //     });
 }
 
 }  // anonymous namespace
