@@ -9449,6 +9449,13 @@ class TestNNDeviceType(NNTestCase):
             with torch.backends.cudnn.flags(enabled=False):
                 self._test_module_empty_input(mod, inp, check_size=False)
 
+    def test_MaxPool_empty(self, device):
+        for mod, inp in [
+                (torch.nn.MaxPool1d(3, stride=2).to(device), torch.randn(0, 16, 50, device=device)),
+                (torch.nn.MaxPool2d(3, stride=2).to(device), torch.randn(0, 16, 50, 32, device=device),
+                (torch.nn.MaxPool3d(3, stride=2).to(device), torch.randn(0, 16, 50, 44, 32, device=device)))]:
+            self._test_module_empty_input(mod, inp, check_size=False)
+        
     @onlyCUDA
     @largeCUDATensorTest('16GB')
     def test_prelu_backward_32bit_indexing(self, device):

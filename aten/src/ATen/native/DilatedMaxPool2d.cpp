@@ -152,8 +152,11 @@ void max_pool2d_with_indices_out_cpu_template(
   const int dilationH = safe_downcast<int, int64_t>(dilation[0]);
   const int dilationW = dilation.size() == 1 ? dilationH : safe_downcast<int, int64_t>(dilation[1]);
 
-  TORCH_CHECK((input_.ndimension() == 3 || input_.ndimension() == 4),
-    "non-empty 3D or 4D (batch mode) tensor expected for input");
+  bool valid_dims = input_.size(1) != 0 && input_.size(2) != 0;
+  TORCH_CHECK(
+    (input_.ndimension() == 3 && valid_dims) ||
+    (input_.ndimension() == 4 && valid_dims && input_.size(3) != 0),
+    "3D or 4D (batch mode) tensor expected for input");
 
   /* sizes */
   const int64_t nbatch = input_.ndimension() == 4 ? input_.size(-4) : 1;
@@ -330,8 +333,11 @@ Tensor& max_pool2d_with_indices_backward_out_cpu_template(
   const int dilationH = safe_downcast<int, int64_t>(dilation[0]);
   const int dilationW = dilation.size() == 1 ? dilationH : safe_downcast<int, int64_t>(dilation[1]);
 
-  TORCH_CHECK((input.ndimension() == 3 || input.ndimension() == 4),
-    "non-empty 3D or 4D (batch mode) tensor expected for input");
+  bool valid_dims = input.size(1) != 0 && input.size(2) != 0;
+  TORCH_CHECK(
+    (input.ndimension() == 3 && valid_dims) ||
+    (input.ndimension() == 4 && valid_dims && input.size(3) != 0),
+    "3D or 4D (batch mode) tensor expected for input");
 
   /* get contiguous gradOutput */
   const Tensor gradOutput = gradOutput_.contiguous();
