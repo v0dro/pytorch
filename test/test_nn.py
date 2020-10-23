@@ -10213,6 +10213,29 @@ class TestNNDeviceType(NNTestCase):
             mod(inp)
 
     @onlyOnCPUAndCUDA
+    def test_MaxPool_empty(self, device):
+        for mod, inp in [
+                (torch.nn.MaxPool1d(3, stride=2), torch.randn(0, 16, 50, device=device)),
+                (torch.nn.MaxPool2d(3, stride=2), torch.randn(0, 16, 50, 32, device=device)),
+                (torch.nn.MaxPool3d(3, stride=2), torch.randn(0, 16, 50, 44, 31, device=device))]:
+            self._test_module_empty_input(mod, inp, check_size=False)
+
+        with self.assertRaisesRegex(RuntimeError, 'Expected 2D or 3D'):
+            mod = torch.nn.MaxPool1d(3, stride=2)
+            inp = torch.randn(16, 0, 50, device=device)
+            mod(inp)
+
+        with self.assertRaisesRegex(RuntimeError, 'Expected 3D or 4D'):
+            mod = torch.nn.MaxPool2d(3, stride=2)
+            inp = torch.randn(16, 50, 0, 32, device=device)
+            mod(inp)
+
+        with self.assertRaisesRegex(RuntimeError, 'Expected 4D or 5D'):
+            mod = torch.nn.MaxPool3D(3, stride=2)
+            inp = torch.randn(16, 50, 44, 0, 31, device=device)
+            mod(inp)
+
+    @onlyOnCPUAndCUDA
     def test_Unfold_empty(self, device):
         inp = torch.randn(0, 3, 3, 4, device=device)
         unfold = torch.nn.Unfold(kernel_size=(2, 3)).to(device)
