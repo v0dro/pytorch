@@ -58,6 +58,20 @@ pool2d_shape_check(
   const int64_t ndim = input.ndimension();
   const int64_t nOutputPlane = nInputPlane;
 
+  const auto memory_format = input.suggest_memory_format();
+  bool valid_dims = input.size(1) != 0 && input.size(2) != 0;
+  if (memory_format == at::MemoryFormat::ChannelsLast) {
+    TORCH_CHECK(input.ndimension() == 4 && input.size(3) != 0,
+      "Expected 4D (batch mode) tensor for input with optional 0-dim batch size with channels_last layout, but got: ",
+      input.sizes());
+  }
+  else {
+    TORCH_CHECK(((input.ndimension() == 3 && input.size(0) != 0 && valid_dims) ||
+       (input.ndimension() == 4 && valid_dims && input.size(3) != 0)),
+      "Expected 3D or 4D (batch mode) tensor with optional 0-dim batch size, but got:",
+      input.sizes());
+  }
+
   TORCH_CHECK(kW > 0 && kH > 0,
               "kernel size should be greater than zero, but got ",
               "kH: ", kH, " kW: ", kW);
@@ -68,8 +82,6 @@ pool2d_shape_check(
               "dilation should be greater than zero, but got ",
               "dilationH: ", dilationH, " dilationW: ", dilationW);
 
-  TORCH_CHECK(input.numel() > 0 && (ndim == 3 || ndim == 4),
-              "non-empty 3D or 4D input tensor expected but got ndim: ", ndim);
   TORCH_CHECK(kW/2 >= padW && kH/2 >= padH,
               "pad should be smaller than half of kernel size, but got ",
               "padW = ", padW, ", padH = ", padH, ", kW = ", kW, ", kH = ", kH);
@@ -151,6 +163,12 @@ pool3d_shape_check(
 {
   const int64_t ndim = input.ndimension();
 
+  bool valid_dims = input.size(1) != 0 && input.size(2) != 0 && input.size(3) != 0;
+  TORCH_CHECK(((input.ndimension() == 4 && input.size(0) != 0 && valid_dims) ||
+               (input.ndimension() == 5 && valid_dims && input.size(4) != 0)),
+              "Expected 4D or 5D (batch mode) tensor with optional 0-dim batch size, but got: ",
+              input.sizes());
+
   TORCH_CHECK(kT > 0 && kW > 0 && kH > 0,
               "kernel size should be greater than zero, but got ",
               "kT: ", kT, " kH: ", kH, " kW: ", kW);
@@ -160,9 +178,6 @@ pool3d_shape_check(
   TORCH_CHECK(dilationT > 0 && dilationW > 0 && dilationH > 0,
               "dilation should be greater than zero, but got ",
               "dilationT: ", dilationT, " dilationH: ", dilationH, " dilationW: ", dilationW);
-
-  TORCH_CHECK(input.numel() > 0 && (ndim == 4 || ndim == 5),
-              "non-empty 4D or 5D (batch mode) tensor expected for input, but got ndim: ", ndim);
 
   if (check_input_size) { // AveragePool3d
     TORCH_CHECK(itime >= kT && iheight >= kH && iwidth >= kW,

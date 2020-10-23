@@ -10220,7 +10220,7 @@ class TestNNDeviceType(NNTestCase):
                 (torch.nn.MaxPool3d(3, stride=2), torch.randn(0, 16, 50, 44, 31, device=device))]:
             self._test_module_empty_input(mod, inp, check_size=False)
 
-        with self.assertRaisesRegex(RuntimeError, 'Expected 2D or 3D'):
+        with self.assertRaisesRegex(RuntimeError, 'Expected 3D or 4D'):
             mod = torch.nn.MaxPool1d(3, stride=2)
             inp = torch.randn(16, 0, 50, device=device)
             mod(inp)

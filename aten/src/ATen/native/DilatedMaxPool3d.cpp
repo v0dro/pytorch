@@ -174,9 +174,6 @@ void max_pool3d_with_indices_out_cpu_template(
   const int dilationH = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[1]);
   const int dilationW = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[2]);
 
-  TORCH_CHECK((input_.ndimension() == 4 || input_.ndimension() == 5),
-    "non-empty 4D or 5D (batch mode) tensor expected for input");
-
   const int64_t nslices = input_.size(-4);
   const int64_t itime = input_.size(-3);
   const int64_t iheight = input_.size(-2);
@@ -381,9 +378,6 @@ Tensor& max_pool3d_with_indices_backward_out_cpu_template(
   const int dilationT = safe_downcast<int, int64_t>(dilation[0]);
   const int dilationH = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[1]);
   const int dilationW = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[2]);
-
-  TORCH_CHECK((input.ndimension() == 4 || input.ndimension() == 5),
-    "non-empty 4D or 5D (batch mode) tensor expected for input");
 
   const int64_t nslices = input.size(-4);
   const int64_t itime = input.size(-3);
