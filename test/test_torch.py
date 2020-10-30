@@ -12747,6 +12747,12 @@ class TestTorchDeviceType(TestCase):
                            [12, 2, 2, 2],
                            [12, 2, 2, 2],
                            [2, 2, 2, 2]], device=device, dtype=dtype), "multiply"),
+            (torch.zeros(4, 4, device=device, dtype=dtype),
+             torch.tensor([[6, 8], [1, 2]], device=device, dtype=dtype).repeat(2, 2),
+             torch.tensor([[2, 2, 2, 2],
+                           [6, 2, 2, 2],
+                           [6, 2, 2, 2],
+                           [2, 2, 2, 2]], device=device, dtype=dtype), "max"),
         ]
 
         for input, src, result, operation in test_data:
