@@ -6776,6 +6776,20 @@ else:
         if self.device_type == 'cuda':
             sub_test(False)
 
+    @skipCUDAIfNoMagma
+    @skipCPUIfNoLapack
+    @dtypes(torch.float32, torch.float64, torch.complex64, torch.complex128)
+    @onlyOnCPUAndCUDA
+    def test_lu_solve_large_batched(self, device, dtype):
+        dim = 1111
+        batch_size = 3
+        A = torch.randn(batch_size, dim, dim, device=device, dtype=dtype)
+        x = torch.ones(batch_size, dim, dim, device=device, dtype=dtype)
+        b = torch.bmm(A, x)
+        LU_data, LU_pivots = torch.lu(A)
+
+        torch.testing.assert_allclose(x, torch.lu_solve(b, LU_data, LU_pivots), rtol=1e-2, atol=1e-2)
+
     @slowTest
     @skipCUDAIfNoMagma
     @skipCPUIfNoLapack
